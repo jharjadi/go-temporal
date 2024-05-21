@@ -1,4 +1,0 @@
-.PHONY: start
-
-start:
-	@docker-compose --project-directory ./ -f ./docker/docker-compose.yaml --profile=temporal up --detach --force-recreate
