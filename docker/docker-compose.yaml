@@ -1,5 +1,60 @@
 version: "3.5"
 services:
+  pubsub-emulator:
+    profiles: ["pubsub"]
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8085
+    environment:
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      NO_PROXY: ""
+      https_proxy: ""
+      http_proxy: ""
+      PUBSUB_EMULATOR_HOST: "pubsub-emulator:8085"
+    ports:
+      - "8085:8085"
+
+
+  spanner:
+    profiles: [ "spanner" ]
+    container_name: spanner
+    image: hub.artifactory.gcp.anz/roryq/spanner-emulator:${SPANNER_EMULATOR_VERSION:-1.5.13}
+    environment:
+      SPANNER_PROJECT_ID: ${SPANNER_PROJECT:-tms-cmt-local}
+      SPANNER_INSTANCE_ID: ${SPANNER_INSTANCE:-cmt-local}
+      SPANNER_DATABASE_ID: ${SPANNER_DATABASE:-cmt}
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      NO_PROXY: ""
+      https_proxy: ""
+      http_proxy: ""
+    ports:
+      - "9010:9010"
+      - "9020:9020"
+
+  spanner-health-check:
+    profiles: [ "spanner" ]
+    container_name: "spanner-health-check"
+    image: hub.artifactory.gcp.anz/curlimages/curl:8.5.0
+    depends_on:
+      - spanner
+    healthcheck:
+      test: |
+        curl --fail http://spanner:9020/v1/projects/${SPANNER_PROJECT:-tms-cmt-local}/instances/${SPANNER_INSTANCE:-cmt-local}/databases/${SPANNER_DATABASE:-cmt}
+      timeout: 10m
+      interval: 1s
+      retries: 10
+    environment:
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      NO_PROXY: ""
+      https_proxy: ""
+      http_proxy: ""
+    entrypoint: |
+      tail -f /dev/null
+  
+  
+
   elasticsearch:
     container_name: temporal-elasticsearch
     environment:
@@ -35,6 +90,10 @@ services:
       - postgresql
       - elasticsearch
     environment:
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
       - DB=postgres12
       - DB_PORT=5432
       - POSTGRES_USER=temporal
@@ -70,6 +129,10 @@ services:
     depends_on:
       - temporal
     environment:
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CORS_ORIGINS=http://localhost:3000
     image: temporalio/ui:${TEMPORAL_UI_VERSION}

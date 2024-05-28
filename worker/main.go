@@ -19,21 +19,22 @@ func main() {
 
 	fmt.Println("Fullname=", os.Getenv("fullname"))
 	fmt.Println("Email=", os.Getenv("email"))
+
 	c, err := client.Dial(client.Options{})
 	if err != nil {
-		log.Fatalln("unable to create Temporal client", err)
+		log.Fatalln("Unable to create client", err)
 	}
 	defer c.Close()
 
-	// This worker hosts both Workflow and Activity functions
-	w := worker.New(c, app.GreetingTaskQueue, worker.Options{})
-	w.RegisterWorkflow(app.GreetingWorkflow)
-	w.RegisterActivity(app.ComposeGreeting)
+	w := worker.New(c, "greeting-tasks", worker.Options{})
 
-	// Start listening to the Task Queue
+	w.RegisterWorkflow(app.GreetSomeone)
+	w.RegisterActivity(app.GreetInSpanish)
+	w.RegisterActivity(app.FarewellInSpanish)
+
 	err = w.Run(worker.InterruptCh())
 	if err != nil {
-		log.Fatalln("unable to start Worker", err)
+		log.Fatalln("Unable to start worker", err)
 	}
 
 }
